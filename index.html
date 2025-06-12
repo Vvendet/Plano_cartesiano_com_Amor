@@ -7,11 +7,15 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body {
+      background-color: #2e0854; /* roxo escuro */
+      color: #eee; /* texto claro para contraste */
       font-family: Arial, sans-serif;
       text-align: center;
       padding: 20px;
     }
     canvas {
+      background-color: #3a0f6f; /* roxo escuro para plano */
+      border: 1px solid #6b42a4; /* borda roxa clara */
       max-width: 600px;
       margin: 20px auto;
     }
@@ -19,6 +23,7 @@
       max-width: 600px;
       margin: 0 auto;
       text-align: left;
+      color: #eee;
     }
     .item {
       display: flex;
@@ -33,9 +38,27 @@
       width: 60px;
       padding: 5px;
       margin: 5px;
+      border: 1px solid #6b42a4;
+      background-color: #4b1a9a;
+      color: #eee;
+      border-radius: 3px;
+    }
+    input::placeholder {
+      color: #bba1ff;
     }
     button {
       margin: 5px;
+      padding: 6px 12px;
+      background-color: #6b42a4;
+      border: none;
+      color: #eee;
+      font-weight: bold;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    button:hover {
+      background-color: #8559c4;
     }
   </style>
 </head>
@@ -85,12 +108,19 @@
             position: 'bottom',
             min: -10,
             max: 10,
-            grid: { color: '#ddd' }
+            grid: { color: '#6b42a4' },
+            ticks: { color: '#ddd' }
           },
           y: {
             min: -10,
             max: 10,
-            grid: { color: '#ddd' }
+            grid: { color: '#6b42a4' },
+            ticks: { color: '#ddd' }
+          }
+        },
+        plugins: {
+          legend: {
+            labels: { color: '#eee' }
           }
         },
         onClick: (e) => {
@@ -101,22 +131,6 @@
         }
       }
     });
-
-    function resetAll() {
-        // Remove todos os pontos
-        pointDataset.data = [];
-
-        // Remove todos os segmentos
-        segmentDatasets.length = 0;
-
-        // Limpa datasets do gráfico (mantém apenas o de pontos)
-        chart.data.datasets = [pointDataset];
-
-        // Atualiza interface e gráfico
-        updatePointList();
-        updateSegmentList();
-        chart.update();
-        }
 
     function addPoint(newPoint) {
       const exists = pointDataset.data.some(p => p.x === newPoint.x && p.y === newPoint.y);
@@ -136,7 +150,7 @@
           label: `Segmento ${n - 1}`,
           data: [prevPoint, lastPoint],
           type: 'line',
-          borderColor: 'blue',
+          borderColor: 'cyan',
           borderWidth: 2,
           fill: false,
           pointRadius: 0,
@@ -165,7 +179,6 @@
       document.getElementById('yInput').value = '';
     }
 
-    // Adiciona funcionalidade de Enter para o formulário
     document.getElementById('xInput').addEventListener('keydown', e => {
       if (e.key === 'Enter') addPointFromInput();
     });
@@ -250,29 +263,38 @@
       }
     }
 
-    document.addEventListener("keydown", function(e) {
-        if (e.ctrlKey && e.key === "z") {
-            e.preventDefault();
-            undoLast();
-        }
-        if (e.ctrlKey && e.key === "x") {
-            e.preventDefault();
-            resetAll();
-        }
-    });
-
-    function saveAsImage() {
-        const canvas = document.getElementById("graphCanvas");
-        const imageURL = canvas.toDataURL("image/png");
-
-        const link = document.createElement("a");
-        link.href = imageURL;
-        link.download = "plano_cartesiano.png";
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+    function resetAll() {
+      pointDataset.data = [];
+      segmentDatasets.length = 0;
+      chart.data.datasets = [pointDataset];
+      updatePointList();
+      updateSegmentList();
+      chart.update();
     }
 
+    function saveAsImage() {
+      const canvas = document.getElementById("graphCanvas");
+      const imageURL = canvas.toDataURL("image/png");
+
+      const link = document.createElement("a");
+      link.href = imageURL;
+      link.download = "plano_cartesiano.png";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    // Atalhos de teclado
+    document.addEventListener("keydown", function(e) {
+      if (e.ctrlKey && e.key === "z") {
+        e.preventDefault();
+        undoLast();
+      }
+      if (e.ctrlKey && e.key === "x") {
+        e.preventDefault();
+        resetAll();
+      }
+    });
   </script>
 </body>
 </html>
