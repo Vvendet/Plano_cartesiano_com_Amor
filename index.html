@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Plano Cartesiano com Segmentos</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 20px;
+    }
+    canvas {
+      max-width: 600px;
+      margin: auto;
+    }
+  </style>
+</head>
+<body>
+  <h1>Plano Cartesiano com Segmentos</h1>
+  <p>Clique no gráfico para adicionar pontos. Cada novo ponto será ligado ao anterior.</p>
+
+  <canvas id="graphCanvas" width="600" height="600"></canvas>
+
+  <script>
+    const ctx = document.getElementById('graphCanvas').getContext('2d');
+
+    const pointDataset = {
+      label: 'Pontos',
+      data: [],
+      backgroundColor: 'red',
+      showLine: false,
+      pointRadius: 5,
+      type: 'scatter'
+    };
+
+    const segmentDatasets = []; // Aqui serão armazenados os segmentos
+
+    const chart = new Chart(ctx, {
+      type: 'scatter',
+      data: {
+        datasets: [pointDataset]
+      },
+      options: {
+        responsive: false,
+        scales: {
+          x: {
+            type: 'linear',
+            position: 'bottom',
+            min: -10,
+            max: 10,
+            grid: { color: '#ddd' }
+          },
+          y: {
+            min: -10,
+            max: 10,
+            grid: { color: '#ddd' }
+          }
+        },
+        onClick: (e) => {
+          const canvasPosition = Chart.helpers.getRelativePosition(e, chart);
+          const x = chart.scales.x.getValueForPixel(canvasPosition.x);
+          const y = chart.scales.y.getValueForPixel(canvasPosition.y);
+          const newPoint = { x: parseFloat(x.toFixed(2)), y: parseFloat(y.toFixed(2)) };
+
+          // Adiciona o novo ponto
+          pointDataset.data.push(newPoint);
+
+          // Se houver pelo menos dois pontos, adiciona um segmento entre os dois últimos
+          const n = pointDataset.data.length;
+          if (n >= 2) {
+            const lastPoint = pointDataset.data[n - 1];
+            const prevPoint = pointDataset.data[n - 2];
+
+            segmentDatasets.push({
+              label: `Segmento ${n - 1}`,
+              data: [prevPoint, lastPoint],
+              type: 'line',
+              borderColor: 'blue',
+              borderWidth: 2,
+              fill: false,
+              pointRadius: 0,
+              showLine: true
+            });
+
+            // Adiciona o novo segmento ao gráfico
+            chart.data.datasets.push(segmentDatasets[segmentDatasets.length - 1]);
+          }
+
+          chart.update();
+        }
+      }
+    });
+  </script>
+</body>
+</html>
