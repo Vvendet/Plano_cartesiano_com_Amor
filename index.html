@@ -13,15 +13,49 @@
     }
     canvas {
       max-width: 600px;
-      margin: auto;
+      margin: 20px auto;
+    }
+    .list-section {
+      max-width: 600px;
+      margin: 0 auto;
+      text-align: left;
+    }
+    .item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 5px 0;
+    }
+    #manualInput {
+      margin-bottom: 20px;
+    }
+    input {
+      width: 60px;
+      padding: 5px;
+      margin: 5px;
+    }
+    button {
+      margin: 5px;
     }
   </style>
 </head>
 <body>
   <h1>Plano Cartesiano com Segmentos</h1>
-  <p>Clique no gráfico para adicionar pontos. Cada novo ponto será ligado ao anterior.</p>
+  <p>Clique no gráfico ou insira coordenadas abaixo para adicionar pontos.</p>
+
+  <div id="manualInput">
+    <input id="xInput" type="number" step="0.1" placeholder="x" />
+    <input id="yInput" type="number" step="0.1" placeholder="y" />
+    <button onclick="addPointFromInput()">Adicionar ponto</button>
+  </div>
+
+  <button onclick="undoLast()">Desfazer último passo</button>
+  <button onclick="resetAll()">Resetar tudo</button>
 
   <canvas id="graphCanvas" width="600" height="600"></canvas>
+
+  <div class="list-section" id="pointList"></div>
+  <div class="list-section" id="segmentList"></div>
 
   <script>
     const ctx = document.getElementById('graphCanvas').getContext('2d');
@@ -35,7 +69,7 @@
       type: 'scatter'
     };
 
-    const segmentDatasets = []; // Aqui serão armazenados os segmentos
+    const segmentDatasets = [];
 
     const chart = new Chart(ctx, {
       type: 'scatter',
@@ -60,38 +94,160 @@
         },
         onClick: (e) => {
           const canvasPosition = Chart.helpers.getRelativePosition(e, chart);
-          const x = chart.scales.x.getValueForPixel(canvasPosition.x);
-          const y = chart.scales.y.getValueForPixel(canvasPosition.y);
-          const newPoint = { x: parseFloat(x.toFixed(2)), y: parseFloat(y.toFixed(2)) };
-
-          // Adiciona o novo ponto
-          pointDataset.data.push(newPoint);
-
-          // Se houver pelo menos dois pontos, adiciona um segmento entre os dois últimos
-          const n = pointDataset.data.length;
-          if (n >= 2) {
-            const lastPoint = pointDataset.data[n - 1];
-            const prevPoint = pointDataset.data[n - 2];
-
-            segmentDatasets.push({
-              label: `Segmento ${n - 1}`,
-              data: [prevPoint, lastPoint],
-              type: 'line',
-              borderColor: 'blue',
-              borderWidth: 2,
-              fill: false,
-              pointRadius: 0,
-              showLine: true
-            });
-
-            // Adiciona o novo segmento ao gráfico
-            chart.data.datasets.push(segmentDatasets[segmentDatasets.length - 1]);
-          }
-
-          chart.update();
+          const x = parseFloat(chart.scales.x.getValueForPixel(canvasPosition.x).toFixed(2));
+          const y = parseFloat(chart.scales.y.getValueForPixel(canvasPosition.y).toFixed(2));
+          addPoint({ x, y });
         }
       }
     });
+
+    function resetAll() {
+        // Remove todos os pontos
+        pointDataset.data = [];
+
+        // Remove todos os segmentos
+        segmentDatasets.length = 0;
+
+        // Limpa datasets do gráfico (mantém apenas o de pontos)
+        chart.data.datasets = [pointDataset];
+
+        // Atualiza interface e gráfico
+        updatePointList();
+        updateSegmentList();
+        chart.update();
+        }
+
+    function addPoint(newPoint) {
+      const exists = pointDataset.data.some(p => p.x === newPoint.x && p.y === newPoint.y);
+      if (exists) {
+        console.log(`Ponto (${newPoint.x}, ${newPoint.y}) já existe.`);
+        return;
+      }
+
+      pointDataset.data.push(newPoint);
+
+      const n = pointDataset.data.length;
+      if (n >= 2) {
+        const lastPoint = pointDataset.data[n - 1];
+        const prevPoint = pointDataset.data[n - 2];
+
+        const segment = {
+          label: `Segmento ${n - 1}`,
+          data: [prevPoint, lastPoint],
+          type: 'line',
+          borderColor: 'blue',
+          borderWidth: 2,
+          fill: false,
+          pointRadius: 0,
+          showLine: true,
+          id: `segment-${Date.now()}`
+        };
+
+        segmentDatasets.push(segment);
+        chart.data.datasets.push(segment);
+      }
+
+      updatePointList();
+      updateSegmentList();
+      chart.update();
+    }
+
+    function addPointFromInput() {
+      const x = parseFloat(document.getElementById('xInput').value);
+      const y = parseFloat(document.getElementById('yInput').value);
+      if (isNaN(x) || isNaN(y)) {
+        alert("Digite valores válidos para X e Y.");
+        return;
+      }
+      addPoint({ x: parseFloat(x.toFixed(2)), y: parseFloat(y.toFixed(2)) });
+      document.getElementById('xInput').value = '';
+      document.getElementById('yInput').value = '';
+    }
+
+    // Adiciona funcionalidade de Enter para o formulário
+    document.getElementById('xInput').addEventListener('keydown', e => {
+      if (e.key === 'Enter') addPointFromInput();
+    });
+    document.getElementById('yInput').addEventListener('keydown', e => {
+      if (e.key === 'Enter') addPointFromInput();
+    });
+
+    function updateSegmentList() {
+      const list = document.getElementById('segmentList');
+      list.innerHTML = "<h3>Segmentos:</h3>";
+      segmentDatasets.forEach((segment, index) => {
+        const div = document.createElement('div');
+        div.className = "item";
+        div.innerHTML = `
+          <span>${segment.label}</span>
+          <button onclick="removeSegment(${index})">Excluir</button>
+        `;
+        list.appendChild(div);
+      });
+    }
+
+    function updatePointList() {
+      const list = document.getElementById('pointList');
+      list.innerHTML = "<h3>Pontos:</h3>";
+      pointDataset.data.forEach((point, index) => {
+        const div = document.createElement('div');
+        div.className = "item";
+        div.innerHTML = `
+          <span>(${point.x}, ${point.y})</span>
+          <button onclick="removePoint(${index})">Excluir</button>
+        `;
+        list.appendChild(div);
+      });
+    }
+
+    function removeSegment(index) {
+      const segment = segmentDatasets[index];
+      const chartIndex = chart.data.datasets.findIndex(ds => ds === segment);
+      if (chartIndex !== -1) {
+        chart.data.datasets.splice(chartIndex, 1);
+        segmentDatasets.splice(index, 1);
+        updateSegmentList();
+        chart.update();
+      }
+    }
+
+    function removePoint(index) {
+      const removedPoint = pointDataset.data[index];
+      pointDataset.data.splice(index, 1);
+
+      const idsToRemove = [];
+      segmentDatasets.forEach((seg, i) => {
+        if (seg.data.some(p => p.x === removedPoint.x && p.y === removedPoint.y)) {
+          idsToRemove.push(i);
+        }
+      });
+
+      idsToRemove.reverse().forEach(i => {
+        const chartIndex = chart.data.datasets.findIndex(ds => ds === segmentDatasets[i]);
+        if (chartIndex !== -1) chart.data.datasets.splice(chartIndex, 1);
+        segmentDatasets.splice(i, 1);
+      });
+
+      updatePointList();
+      updateSegmentList();
+      chart.update();
+    }
+
+    function undoLast() {
+      if (pointDataset.data.length > 0) {
+        pointDataset.data.pop();
+        if (segmentDatasets.length > 0) {
+          const segment = segmentDatasets.pop();
+          const chartIndex = chart.data.datasets.findIndex(ds => ds === segment);
+          if (chartIndex !== -1) {
+            chart.data.datasets.splice(chartIndex, 1);
+          }
+        }
+        updatePointList();
+        updateSegmentList();
+        chart.update();
+      }
+    }
   </script>
 </body>
 </html>
